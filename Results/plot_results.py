@@ -43,6 +43,9 @@ def plot_comparisson(name, decimals=3, transparency=0.5, ecac_path="solutions/F1
     image_rgb = cv2.imread(f"images/original/{name}.png")
     image_rgb = cv2.cvtColor(image_rgb, cv2.COLOR_BGR2RGB)
 
+    image_rgb_64 = cv2.imread(f"images/resized/{name}.png")
+    image_rgb_64 = cv2.cvtColor(image_rgb_64, cv2.COLOR_BGR2RGB)
+
     mask_image = cv2.imread(f"images/resized/{name}_mask.png")
     mask_image = cv2.cvtColor(mask_image, cv2.COLOR_BGR2RGB)
 
@@ -56,13 +59,13 @@ def plot_comparisson(name, decimals=3, transparency=0.5, ecac_path="solutions/F1
     ax[1].set_title('Hand-map')
     ax[1].axis('off')
 
-    ax[2].imshow(image_rgb)
+    ax[2].imshow(image_rgb_64)
     ax[2].imshow(ecac_cluster, cmap='jet', alpha=transparency)
     ax[2].set_title(f'F1-ECAC ARI: {round(ecac_ari, decimals)}')
     ax[2].axis('off')
     ax[2].set_rasterized(True)
 
-    ax[3].imshow(image_rgb)
+    ax[3].imshow(image_rgb_64)
     ax[3].imshow(kmans_cluster, cmap='jet', alpha=transparency)
     ax[3].set_title(f'k-Means ARI: {round(kmeans_ari, decimals)}')
     ax[3].axis('off')
