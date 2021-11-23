@@ -14,31 +14,35 @@ def get_best_cluster(file):
 
     index = results.index[results["Adjusted Rand Index"] == best_ari][0]
 
-    results.drop(["Dataset", "Algorithm", "Clusters", "Instances", "Features",
-                  "Pop. size", "Max. gens", "Gens", "No. objectives",
-                  "Obj. name", "Fitness", "Time", "Adjusted Rand Index"], axis="columns", inplace=True)
+    cols = list(results.columns)
+    cols = [c for c in cols if "X" not in c]
+
+    results.drop(cols, axis="columns", inplace=True)
 
     best_cluster = np.array(results.iloc[index])
 
     return best_cluster, best_ari
 
 
-def plot_comparisson(name, decimals=3, transparency=0.5, ecac_path="solutions/F1ECAC", kmeans_path="solutions/kMeans"):
+def set_axes_with_cluster(name, cluster, axes, i, base, transparency, decimals):
 
-    F1ECAC_Files = [obj.name for obj in Path(ecac_path).iterdir()]
-    F1ECAC_Result = [file for file in F1ECAC_Files if name in file][0]
+    path = f"solutions/{cluster}"
 
-    kMeans_Files = [obj.name for obj in Path(kmeans_path).iterdir()]
-    kMeans_Result = [file for file in kMeans_Files if name in file][0]
+    files = [obj.name for obj in Path(path).iterdir()]
+    result = [file for file in files if name in file][0]
 
-    ecac_path = f"{ecac_path}/{F1ECAC_Result}"
-    kmeans_path = f"{kmeans_path}/{kMeans_Result}"
+    path = f"{path}/{result}"
+    results, ari = get_best_cluster(path)
+    results = results.reshape([64, 64])
 
-    ecac_cluster, ecac_ari = get_best_cluster(ecac_path)
-    ecac_cluster = ecac_cluster.reshape([64, 64])
+    axes[i].imshow(base)
+    axes[i].imshow(results, cmap='jet', alpha=transparency)
+    axes[i].set_title(f'{cluster} ARI: {round(ari, decimals)}')
+    axes[i].axis('off')
+    axes[i].set_rasterized(True)
 
-    kmans_cluster, kmeans_ari = get_best_cluster(kmeans_path)
-    kmans_cluster = kmans_cluster.reshape([64, 64])
+
+def plot_comparisson(name, decimals=3, transparency=0.5, path="solutions", fig_size=(15, 3.5)):
 
     image_rgb = cv2.imread(f"images/original/{name}.png")
     image_rgb = cv2.cvtColor(image_rgb, cv2.COLOR_BGR2RGB)
@@ -49,7 +53,10 @@ def plot_comparisson(name, decimals=3, transparency=0.5, ecac_path="solutions/F1
     mask_image = cv2.imread(f"images/resized/{name}_mask.png")
     mask_image = cv2.cvtColor(mask_image, cv2.COLOR_BGR2RGB)
 
-    fig, ax = plt.subplots(nrows=1, ncols=4, figsize=(10, 3.5))
+    algorithms = [obj.name for obj in Path(path).iterdir()]
+    algorithms = [obj for obj in algorithms if "." not in obj]
+
+    fig, ax = plt.subplots(nrows=1, ncols=len(algorithms)+2, figsize=fig_size)
 
     ax[0].imshow(image_rgb)
     ax[0].set_title('Original')
@@ -59,17 +66,9 @@ def plot_comparisson(name, decimals=3, transparency=0.5, ecac_path="solutions/F1
     ax[1].set_title('Hand-map')
     ax[1].axis('off')
 
-    ax[2].imshow(image_rgb_64)
-    ax[2].imshow(ecac_cluster, cmap='jet', alpha=transparency)
-    ax[2].set_title(f'F1-ECAC ARI: {round(ecac_ari, decimals)}')
-    ax[2].axis('off')
-    ax[2].set_rasterized(True)
-
-    ax[3].imshow(image_rgb_64)
-    ax[3].imshow(kmans_cluster, cmap='jet', alpha=transparency)
-    ax[3].set_title(f'k-Means ARI: {round(kmeans_ari, decimals)}')
-    ax[3].axis('off')
-    ax[3].set_rasterized(True)
+    for i, cluster in enumerate(algorithms):
+        print(i+2, cluster)
+        set_axes_with_cluster(name, cluster, ax, i+2, image_rgb_64, transparency, decimals)
 
     plt.subplots_adjust()
     title = name.replace("_", " ")
@@ -77,9 +76,8 @@ def plot_comparisson(name, decimals=3, transparency=0.5, ecac_path="solutions/F1
     title = f"Results: {title}"
     plt.suptitle(title)
 
-    # Retrieve a view on the renderer buffer
-
     plt.savefig(f"images/results/{name}.svg")
+    plt.show()
 
 
 def plot_results(images_path):
@@ -87,8 +85,10 @@ def plot_results(images_path):
     images = [obj.name for obj in Path(images_path).iterdir()]
     images = [img.split(".")[0] for img in images]
 
+    images = ["road_with_trees", "white_containers"]
+
     for i, image in enumerate(images):
-        plot_comparisson(image, decimals=3, transparency=0.25)
+        plot_comparisson(image, decimals=3, transparency=0.25, fig_size=(18, 3.5))
 
 
 def main():
